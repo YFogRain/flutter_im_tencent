@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.NonNull
 import com.tencent.imsdk.v2.*
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
@@ -12,7 +11,6 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry.Registrar
 
 /** TencentImPlugin */
 class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler {
@@ -38,6 +36,53 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 			"loginUser" -> result.success(V2TIMManager.getInstance().loginUser) //登录的用户
 			"getConversations" -> getConversations(call.argument<Int>("startIndex")
 					?: 0, call.argument<Int>("endIndex") ?: 0, result)//获取会话列表
+			"deleteConversation" -> deleteConversation(call.argument<String>("conversationId"), result) //删除会话
+			
+			"sendTextMessage" -> sendMessage(result, MessageInfoUtil.buildTextMessage(call.argument<String>("content")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送文本消息
+			
+			"sendImageMessage" -> sendMessage(result, MessageInfoUtil.buildImageMessage(call.argument<String>("imagePath")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送图片消息
+			
+			"sendSoundMessage" -> sendMessage(result, MessageInfoUtil.buildAudioMessage(call.argument<String>("audioPath"), call.argument<Int>("duration")
+					?: 0),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送语音消息
+			
+			"sendVideoMessage" -> sendMessage(result, MessageInfoUtil.buildVideoMessage(context, call.argument<String>("videoPath")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送視頻消息
+			
+			"sendFileMessage" -> sendMessage(result, MessageInfoUtil.buildFileMessage(call.argument<String>("filePath")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送文件消息
+			
+			"sendCustomFaceMessage" -> sendMessage(result, MessageInfoUtil.buildCustomFaceMessage(call.argument<String>("faceName")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送自定义表情消息
+			
+			"sendCustomMessage" -> sendMessage(result, MessageInfoUtil.buildCustomMessage(call.argument<String>("customStr")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送自定义消息
+			
+			"sendAtMessage" -> sendMessage(result, MessageInfoUtil.buildTextAtMessage(call.argument<MutableList<String>>("atUserList"), call.argument<String>("message")),
+					call.argument<Boolean>("isGroup") ?: false,
+					call.argument<String>("imId"),
+					call.argument<Boolean>("retry") ?: false) //发送@消息
+			
+			"loadChatHistory" -> loadChatHistory(call.argument<String>("imId"),call.argument<Int>("size")?:20, call.argument<Boolean>("isGroup")
+					?: false, result)//加载历史消息
+			
+			
 			else -> result.notImplemented()
 		}
 	}
@@ -121,6 +166,66 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 			
 			override fun onProgress(p0: Int) = Unit
 			override fun onError(p0: Int, p1: String?) = result.success(null)
+		})
+	}
+	
+	/**
+	 * 删除会话
+	 */
+	private fun deleteConversation(conversationId: String?, result: Result) {
+		V2TIMManager.getConversationManager().deleteConversation(conversationId, object : V2TIMCallback {
+			override fun onError(p0: Int, p1: String?) = result.success(false)
+			override fun onSuccess() = result.success(true)
+		})
+	}
+	
+	/**
+	 *  发送消息
+	 */
+	private fun sendMessage(result: Result, timMessage: V2TIMMessage?, isGroup: Boolean, chatId: String?, retry: Boolean = false) {
+//		messageInfo.status = MessageInfo.MSG_STATUS_SENDING
+//		addMessageInfo(messageInfo)
+		if (chatId.isNullOrEmpty() || timMessage == null) {
+			result.success(false)
+			return
+		}
+		V2TIMManager.getMessageManager().sendMessage(timMessage,
+				if (isGroup) null else chatId,
+				if (isGroup) chatId else null,
+				if (isGroup) 1 else 0,
+				retry,
+				null,
+				object : V2TIMSendCallback<V2TIMMessage?> {
+					override fun onSuccess(p0: V2TIMMessage?) = result.success(true)
+					override fun onProgress(p0: Int) = Unit
+					override fun onError(p0: Int, p1: String?) = result.success(false)
+				})
+	}
+	
+	/**
+	 *  获取历史消息
+	 */
+	private fun loadChatHistory(imId: String?,size:Int =20, isGroup: Boolean, result: Result) {
+			if (imId.isNullOrEmpty()){
+				result.success(null)
+				return
+			}
+		if (isGroup){
+			V2TIMManager.getMessageManager().getGroupHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
+				override fun onError(p0: Int, p1: String?) =result.success(null)
+				
+				override fun onSuccess(p0: MutableList<V2TIMMessage>?) {
+					//TODO 转换数据
+				}
+			})
+			return
+		}
+		V2TIMManager.getMessageManager().getC2CHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
+			override fun onError(p0: Int, p1: String?)=result.success(null)
+			
+			override fun onSuccess(p0: MutableList<V2TIMMessage>?) {
+				//TODO 转换数据
+			}
 		})
 	}
 	
