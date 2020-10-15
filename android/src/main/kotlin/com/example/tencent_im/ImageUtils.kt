@@ -18,7 +18,7 @@ import java.util.*
  */
 object ImageUtils {
 	fun saveBitmap(context: Context,b: Bitmap): String {
-		val fileImageCachePath = getFileImageCachePath(context)
+		val fileImageCachePath = Utils.getFileImageCachePath(context)
 		val jpegName = fileImageCachePath + File.separator + UUID.randomUUID().toString() + ".jpg"
 		return try {
 			val font = FileOutputStream(jpegName)
@@ -32,13 +32,7 @@ object ImageUtils {
 		}
 	}
 	
-	private fun getFileImageCachePath(context: Context): String {
-		val result = File(context.externalCacheDir, Environment.DIRECTORY_PICTURES)
-		if (!result.exists()) {
-			result.mkdirs()
-		}
-		return result.path
-	}
+
 	
 	fun getImageSize(url: String): IntArray {
 		val size = IntArray(2)

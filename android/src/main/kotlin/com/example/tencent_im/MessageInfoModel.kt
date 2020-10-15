@@ -7,7 +7,7 @@ import java.util.*
  *  Create by rain
  *  Date: 2020/10/14
  */
-class MessageInfoModel {
+class MessageInfo: Comparable<MessageInfo>  {
 	companion object {
 		const val MSG_TYPE_MIME = 0x1
 		/**
@@ -129,22 +129,28 @@ class MessageInfoModel {
 	var msgTime: Long = 0
 	var peerRead = false
 	
-	var tIMMessage: V2TIMMessage? = null
+//	var tIMMessage: V2TIMMessage? = null
 	var width: Int = 0
 	var height: Int = 0
 	
-	fun getCustomInt(): Int {
-		return if (tIMMessage == null) {
-			0
-		} else tIMMessage!!.localCustomInt
+	var tIMessageStr :String?=null //tim消息转成jsonString
+	
+//	fun getCustomInt(): Int {
+//		return if (tIMMessage == null) {
+//			0
+//		} else tIMMessage!!.localCustomInt
+//	}
+//
+//	fun setCustomInt(value: Int) {
+//		if (tIMMessage == null) {
+//			return
+//		}
+//		tIMMessage?.localCustomInt = value
+//	}
+	
+	override fun compareTo(other: MessageInfo): Int {
+		return if (this.msgTime > other.msgTime) 1 else if (this.msgTime < other.msgTime) -1 else 0
 	}
 	
-	fun setCustomInt(value: Int) {
-		if (tIMMessage == null) {
-			return
-		}
-		tIMMessage?.localCustomInt = value
-	}
-
-
+	
 }

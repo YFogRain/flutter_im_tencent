@@ -213,19 +213,13 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 		if (isGroup){
 			V2TIMManager.getMessageManager().getGroupHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
 				override fun onError(p0: Int, p1: String?) =result.success(null)
-				
-				override fun onSuccess(p0: MutableList<V2TIMMessage>?) {
-					//TODO 转换数据
-				}
+				override fun onSuccess(p0: MutableList<V2TIMMessage>?) =result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
 			})
 			return
 		}
 		V2TIMManager.getMessageManager().getC2CHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
 			override fun onError(p0: Int, p1: String?)=result.success(null)
-			
-			override fun onSuccess(p0: MutableList<V2TIMMessage>?) {
-				//TODO 转换数据
-			}
+			override fun onSuccess(p0: MutableList<V2TIMMessage>?)=result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
 		})
 	}
 	
