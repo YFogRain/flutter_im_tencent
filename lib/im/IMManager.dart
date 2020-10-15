@@ -199,17 +199,13 @@ class IMManager {
 
   Future<List<MessageInfoModel>> loadChatHistory(String imId, int size, bool isGroup) async {
     List<MessageInfoModel> messageList = [];
-
     var historyData = await _imMethodChannel.invokeMethod(
         "loadChatHistory", <String, dynamic>{
       "imId": imId,
       "size": size,
       "isGroup": isGroup,
     });
-    //TODO 转换数据
-    if(historyData!=null){
-
-    }
+    print("historyData:$historyData");
     return messageList;
   }
 
