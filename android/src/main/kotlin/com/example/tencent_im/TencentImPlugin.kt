@@ -33,7 +33,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 			"isLoginIM" -> isLoginIM(result) // 是否已经登录IM帐号
 			"loginIM" -> loginIM(call.argument<String>("user_id"), call.argument<String>("user_key"), result)//登录
 			"loginOut" -> loginOutIM(result) //退出登录
-			"loginUser" -> result.success(V2TIMManager.getInstance().loginUser) //登录的用户
+			"loginUser" -> getLoginUserData(result) //登录的用户
 			"getConversations" -> getConversations(call.argument<Int>("startIndex")
 					?: 0, call.argument<Int>("endIndex") ?: 0, result)//获取会话列表
 			"deleteConversation" -> deleteConversation(call.argument<String>("conversationId"), result) //删除会话
@@ -79,7 +79,8 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 					call.argument<String>("imId"),
 					call.argument<Boolean>("retry") ?: false) //发送@消息
 			
-			"loadChatHistory" -> loadChatHistory(call.argument<String>("imId"),call.argument<Int>("size")?:20, call.argument<Boolean>("isGroup")
+			"loadChatHistory" -> loadChatHistory(call.argument<String>("imId"), call.argument<Int>("size")
+					?: 20, call.argument<Boolean>("isGroup")
 					?: false, result)//加载历史消息
 			
 			
@@ -205,22 +206,40 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 	/**
 	 *  获取历史消息
 	 */
-	private fun loadChatHistory(imId: String?,size:Int =20, isGroup: Boolean, result: Result) {
-			if (imId.isNullOrEmpty()){
-				result.success(null)
-				return
-			}
-		if (isGroup){
-			V2TIMManager.getMessageManager().getGroupHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
-				override fun onError(p0: Int, p1: String?) =result.success(null)
-				override fun onSuccess(p0: MutableList<V2TIMMessage>?) =result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
+	private fun loadChatHistory(imId: String?, size: Int = 20, isGroup: Boolean, result: Result) {
+		if (imId.isNullOrEmpty()) {
+			result.success(null)
+			return
+		}
+		if (isGroup) {
+			V2TIMManager.getMessageManager().getGroupHistoryMessageList(imId, size, null, object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
+				override fun onError(p0: Int, p1: String?) = result.success(null)
+				override fun onSuccess(p0: MutableList<V2TIMMessage>?) = result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
 			})
 			return
 		}
-		V2TIMManager.getMessageManager().getC2CHistoryMessageList(imId,size,null,object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
-			override fun onError(p0: Int, p1: String?)=result.success(null)
-			override fun onSuccess(p0: MutableList<V2TIMMessage>?)=result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
+		V2TIMManager.getMessageManager().getC2CHistoryMessageList(imId, size, null, object : V2TIMValueCallback<MutableList<V2TIMMessage>?> {
+			override fun onError(p0: Int, p1: String?) = result.success(null)
+			override fun onSuccess(p0: MutableList<V2TIMMessage>?) = result.success(MessageInfoUtil.historyMessageListToMap(context, p0, isGroup))
 		})
 	}
 	
+	private fun getLoginUserData(result: Result) {
+		V2TIMManager.getInstance().getUsersInfo(mutableListOf(V2TIMManager.getInstance().loginUser), object : V2TIMValueCallback<MutableList<V2TIMUserFullInfo>?> {
+			override fun onError(p0: Int, p1: String?) = result.success(null)
+			
+			override fun onSuccess(p0: MutableList<V2TIMUserFullInfo>?) {
+				if (!p0.isNullOrEmpty()) {
+					val fullInfo = p0[0]
+					result.success(mapOf<String, Any?>("nickName" to fullInfo.nickName,
+							"faceUrl" to fullInfo.faceUrl,
+							"gender" to fullInfo.gender,
+							"userID" to fullInfo.userID,
+							"selfSignature" to fullInfo.selfSignature))
+					return
+				}
+				result.success(null)
+			}
+		})
+	}
 }

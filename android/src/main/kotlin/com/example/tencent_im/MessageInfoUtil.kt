@@ -199,7 +199,7 @@ object MessageInfoUtil {
 						when (val string = String(data)) {
 							GROUP_CREATE -> {
 								msgType = MessageInfo.MSG_TYPE_GROUP_CREATE
-								extra = covert2HTMLString(if (groupNameCard.isNullOrEmpty()) fromUser else groupNameCard).toString()
+								extra = covert2HTMLString(if (groupNameCard.isNullOrEmpty()) fromUser else groupNameCard)
 							}
 							GROUP_DELETE -> {
 								msgType = MessageInfo.MSG_TYPE_GROUP_DELETE
@@ -416,4 +416,7 @@ object MessageInfoUtil {
 		return Utils.getFileCachePath(context)+ File.separator + uuid
 	}
 	
+	fun getMessage(){
+	
+	}
 }

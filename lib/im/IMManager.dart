@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:tencent_im/im/model/UserModel.dart';
 
 import 'model/ConsultModel.dart';
 import 'model/MessageInfoModel.dart';
@@ -85,9 +86,9 @@ class IMManager {
   }
 
   ///获取登录的用户名
-  Future<String> getLoginUser() async {
+  Future<UserModel> getLoginUser() async {
     var loginUser = await _imMethodChannel.invokeMethod("loginUser");
-    return loginUser == null ? "" : loginUser;
+    return loginUser == null ? null : UserModel.fromJson(Map.from(loginUser));
   }
 
   ///发送文本消息
