@@ -108,8 +108,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 			
 			"deleteFriend" -> deleteFriend(call.argument("userList"),call.argument("isDeleteSingle")?:false,result)//删除好友
 			
-			
-			
+			"getGroupList" ->getGroupList(result)//获取群列表
 			
 			
 			else -> result.notImplemented()
@@ -385,4 +384,38 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 		})
 	}
 	
+	/**
+	 * 获取群列表
+	 */
+	private fun getGroupList(result: Result){
+		V2TIMManager.getGroupManager().getJoinedGroupList(object : V2TIMValueCallback<MutableList<V2TIMGroupInfo>?> {
+			override fun onSuccess(p0: MutableList<V2TIMGroupInfo>?) {
+				val list = mutableListOf<Map<String,Any?>>()
+				p0?.forEach {
+					list.add(mapOf(
+							"groupName" to it.groupName,
+							"groupID" to it.groupID,
+							"faceUrl" to it.faceUrl,
+							"groupType" to it.groupType,
+							"introduction" to it.introduction,
+							"notification" to it.notification,
+							"owner" to it.owner,
+							"createTime" to it.createTime,
+							"memberCount" to it.memberCount,
+							"lastMessageTime" to it.lastMessageTime,
+							"isAllMuted" to it.isAllMuted,
+							"recvOpt" to it.recvOpt,
+							"role" to it.role,
+							"groupAddOpt" to it.groupAddOpt,
+							"lastInfoTime" to it.lastInfoTime,
+							"onlineCount" to it.onlineCount,
+							"joinTime" to it.joinTime,
+							
+					))
+				}
+				result.success(list)
+			}
+			override fun onError(p0: Int, p1: String?)= result.success(null)
+		})
+	}
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:tencent_im/im/IMManager.dart';
 import 'package:tencent_im/im/model/UserModel.dart';
+import 'package:tencent_im_example/ui/group/GroupWidget.dart';
 import 'package:tencent_im_example/ui/user/UserDetailWidget.dart';
 import 'package:tencent_im_example/utils/AppColors.dart';
 import 'package:tencent_im_example/utils/Constants.dart';
@@ -179,7 +180,8 @@ class PatientState extends State<PatientWidget> {
                           ),
                         ),
                         onTap: () {
-                          print("群聊");
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => GroupWidget()));
                         },
                       ),
                       Padding(

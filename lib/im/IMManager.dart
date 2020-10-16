@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:tencent_im/im/model/GroupModel.dart';
 import 'package:tencent_im/im/model/UserModel.dart';
 
 import 'enums/log_print_level.dart';
@@ -309,4 +310,15 @@ class IMManager {
     return isDeleteOk != null && isDeleteOk;
   }
 
+  ///获取好友列表
+  Future<List<GroupModel>> getGroupList() async {
+    List<GroupModel> userList = [];
+    var friendMapList = await _imMethodChannel.invokeMethod("getGroupList");
+    if (friendMapList != null) {
+      friendMapList.forEach((element) {
+        userList.add(GroupModel.fromJson(Map.from(element)));
+      });
+    }
+    return userList;
+  }
 }
