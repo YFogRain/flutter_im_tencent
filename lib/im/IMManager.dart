@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:tencent_im/im/model/UserModel.dart';
 
+import 'enums/log_print_level.dart';
 import 'model/ConsultModel.dart';
 import 'model/MessageInfoModel.dart';
 
@@ -13,9 +16,9 @@ class IMManager {
   factory IMManager() {
     if (_instance == null) {
       final MethodChannel methodChannel =
-      const MethodChannel('tencent_im/dim_method');
+          const MethodChannel('tencent_im/dim_method');
       final EventChannel eventChannel =
-      const EventChannel('tencent_im/dim_event');
+          const EventChannel('tencent_im/dim_event');
       _instance = new IMManager.private(methodChannel, eventChannel);
     }
     return _instance;
@@ -35,10 +38,11 @@ class IMManager {
   }
 
   ///im初始化
-  Future<bool> init(int appId) async {
+  Future<bool> init(int appId, LogPrintLevel level) async {
     var initBool =
-    await _imMethodChannel.invokeMethod("initIM", <String, dynamic>{
+        await _imMethodChannel.invokeMethod("initIM", <String, dynamic>{
       'app_id': appId,
+      "level": LogPrintLevelTool.toInt(level),
     });
     return initBool != null && initBool;
   }
@@ -63,8 +67,8 @@ class IMManager {
   }
 
   ///获取会话列表
-  Future<List<ConsultModel>> getConversations(int startIndex,
-      int endIndex) async {
+  Future<List<ConsultModel>> getConversations(
+      int startIndex, int endIndex) async {
     var conversationsList = await _imMethodChannel.invokeMethod(
         "getConversations",
         <String, dynamic>{"startIndex": startIndex, "endIndex": endIndex});
@@ -86,14 +90,43 @@ class IMManager {
   }
 
   ///获取登录的用户名
+  Future<String> getLoginUserStr() async {
+    return await _imMethodChannel.invokeMethod("getLoginUserId");
+  }
+
+  ///获取登录的用户名
   Future<UserModel> getLoginUser() async {
-    var loginUser = await _imMethodChannel.invokeMethod("loginUser");
-    return loginUser == null ? null : UserModel.fromJson(Map.from(loginUser));
+    return await getOneUserDetail(await getLoginUserStr());
+  }
+
+  ///获取单个用户信息
+  Future<UserModel> getOneUserDetail(String userId) async {
+    if (userId == null || userId.isEmpty) {
+      return null;
+    }
+    var list = await getUserData([userId]);
+    if (list == null || list.isEmpty) {
+      return null;
+    }
+    return list[0];
+  }
+
+  ///获取用户信息集合
+  Future<List<UserModel>> getUserData(List<String> strList) async {
+    var userLists = await _imMethodChannel
+        .invokeMethod("getUserData", {"userList": strList});
+    List<UserModel> userModelList = [];
+    if (userLists != null) {
+      userLists.forEach((element) {
+        userModelList.add(UserModel.fromJson(Map.from(element)));
+      });
+    }
+    return userModelList;
   }
 
   ///发送文本消息
-  Future<bool> sendTextMessage(String content, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendTextMessage(
+      String content, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendTextMessage", <String, dynamic>{
       "content": content,
@@ -105,8 +138,8 @@ class IMManager {
   }
 
   ///发送图片消息
-  Future<bool> sendImageMessage(String imagePath, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendImageMessage(
+      String imagePath, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendImageMessage", <String, dynamic>{
       "imagePath": imagePath,
@@ -132,8 +165,8 @@ class IMManager {
   }
 
   ///发送視頻消息
-  Future<bool> sendVideoMessage(String videoPath, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendVideoMessage(
+      String videoPath, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendVideoMessage", <String, dynamic>{
       "videoPath": videoPath,
@@ -145,8 +178,8 @@ class IMManager {
   }
 
   ///发送文件消息
-  Future<bool> sendFileMessage(String filePath, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendFileMessage(
+      String filePath, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendFileMessage", <String, dynamic>{
       "filePath": filePath,
@@ -158,8 +191,8 @@ class IMManager {
   }
 
   ///发送自定义表情消息
-  Future<bool> sendCustomFaceMessage(String faceName, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendCustomFaceMessage(
+      String faceName, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendCustomFaceMessage", <String, dynamic>{
       "faceName": faceName,
@@ -171,8 +204,8 @@ class IMManager {
   }
 
   ///发送自定义消息
-  Future<bool> sendCustomMessage(String customStr, String imId, bool isGroup,
-      bool retry) async {
+  Future<bool> sendCustomMessage(
+      String customStr, String imId, bool isGroup, bool retry) async {
     var isSend = await _imMethodChannel.invokeMethod(
         "sendCustomMessage", <String, dynamic>{
       "customStr": customStr,
@@ -187,7 +220,7 @@ class IMManager {
   Future<bool> sendAtMessage(List<String> atUserList, String message,
       String imId, bool isGroup, bool retry) async {
     var isSend =
-    await _imMethodChannel.invokeMethod("sendAtMessage", <String, dynamic>{
+        await _imMethodChannel.invokeMethod("sendAtMessage", <String, dynamic>{
       "atUserList": atUserList,
       "message": message,
       "isGroup": isGroup,
@@ -197,18 +230,83 @@ class IMManager {
     return isSend != null && isSend;
   }
 
-
-  Future<List<MessageInfoModel>> loadChatHistory(String imId, int size, bool isGroup) async {
+  ///获取聊天历史
+  Future<List<MessageInfoModel>> loadChatHistory(
+      String imId, int size, bool isGroup, bool isFirst) async {
     List<MessageInfoModel> messageList = [];
-    var historyData = await _imMethodChannel.invokeMethod(
-        "loadChatHistory", <String, dynamic>{
+    var historyData = await _imMethodChannel
+        .invokeMethod("loadChatHistory", <String, dynamic>{
       "imId": imId,
       "size": size,
       "isGroup": isGroup,
+      "isFirst": isFirst,
     });
+    if (historyData != null) {
+      var historyList = json.decode(historyData);
+      historyList.forEach((element) {
+        messageList.add(MessageInfoModel.fromJson(Map.from(element)));
+      });
+    }
     print("historyData:$historyData");
     return messageList;
   }
 
+  ///设置消息已读
+  Future<bool> messageRead(String imId,bool isGroup) async {
+    var isSetRead = await _imMethodChannel.invokeMethod("messageRead", {"imId": imId,"isGroup":isGroup});
+    return isSetRead != null && isSetRead;
+  }
+
+
+  ///获取测试的签名
+  Future<String> getTestSig(String userId, int appId, String secretKey) async {
+    var key = await _imMethodChannel.invokeMethod("test_sig", <String, dynamic>{
+      "userId": userId,
+      "sdkAppId": appId,
+      "secretKey": secretKey
+    });
+    return key == null ? "" : key;
+  }
+
+  ///获取好友列表
+  Future<List<UserModel>> getFriendList() async {
+    List<UserModel> userList = [];
+    var friendMapList = await _imMethodChannel.invokeMethod("getFriendList");
+    if (friendMapList != null) {
+      friendMapList.forEach((element) {
+        userList.add(UserModel.fromJson(Map.from(element)));
+      });
+    }
+    return userList;
+  }
+
+  ///检查好友关系
+  Future<bool> checkFriend(String userId,bool isSingleFriend) async {
+    var isFriend =
+        await _imMethodChannel.invokeMethod("checkFriend", {"userId": userId,"isSingleFriend":isSingleFriend});
+    return isFriend != null && isFriend;
+  }
+
+  ///添加好友
+  Future<bool> addFriend(
+      String userId, String source, String wording, String remark,bool isSingleFriend) async {
+    var isSendOk = await _imMethodChannel.invokeMethod("addFriend", {
+      "userId": userId,
+      "source": source,
+      "wording": wording,
+      "remark": remark,
+      "isSingleFriend":isSingleFriend
+    });
+    return isSendOk != null && isSendOk;
+  }
+
+  ///删除好友
+  Future<bool> deleteFriend(List<String> userIdList,bool isDeleteSingle) async {
+    var isDeleteOk = await _imMethodChannel.invokeMethod("deleteFriend", {
+      "userList": userIdList,
+      "isDeleteSingle": isDeleteSingle,
+    });
+    return isDeleteOk != null && isDeleteOk;
+  }
 
 }

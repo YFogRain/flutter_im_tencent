@@ -1,15 +1,14 @@
 package com.example.tencent_im
-
 import com.tencent.imsdk.v2.V2TIMMessage
 import java.util.*
+
 
 /**
  *  Create by rain
  *  Date: 2020/10/14
  */
-class MessageInfo: Comparable<MessageInfo>  {
+class MessageInfoModel: Comparable<MessageInfoModel>  {
 	companion object {
-		const val MSG_TYPE_MIME = 0x1
 		/**
 		 * 文本类型消息
 		 */
@@ -116,15 +115,20 @@ class MessageInfo: Comparable<MessageInfo>  {
 		const val MSG_STATUS_DOWNLOADED = 6
 		
 	}
+	
+	var showName: String? = null
+	var faceUrl: String? = null
+	
+	var duration = 0 //时长
+	
+	
 	var id = UUID.randomUUID().toString()
 	var fromUser: String? = null
-	var groupNameCard: String? = null
 	var msgType = 0
 	var status: Int = MSG_STATUS_NORMAL
 	var self = false
 	var group = false
-	var dataPath: String? = null
-	var dataUri:String? = null
+	
 	var extra: String? = null
 	var msgTime: Long = 0
 	var peerRead = false
@@ -133,7 +137,11 @@ class MessageInfo: Comparable<MessageInfo>  {
 	var width: Int = 0
 	var height: Int = 0
 	
-	var tIMessageStr :String?=null //tim消息转成jsonString
+	@Transient
+	var tiMessage :V2TIMMessage?=null //tim消息转成jsonString
+	
+	var dataPath: String? = null
+	var snapshotPath = ""
 	
 //	fun getCustomInt(): Int {
 //		return if (tIMMessage == null) {
@@ -148,9 +156,7 @@ class MessageInfo: Comparable<MessageInfo>  {
 //		tIMMessage?.localCustomInt = value
 //	}
 	
-	override fun compareTo(other: MessageInfo): Int {
+	override fun compareTo(other: MessageInfoModel): Int {
 		return if (this.msgTime > other.msgTime) 1 else if (this.msgTime < other.msgTime) -1 else 0
 	}
-	
-	
 }

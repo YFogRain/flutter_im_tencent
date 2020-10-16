@@ -9,9 +9,7 @@ class JsonManagerHelper {
     companion object {
         private var instance: JsonManagerHelper? = null
             get() {
-                if (field == null) {
-                    field = JsonManagerHelper()
-                }
+                if (field == null) field = JsonManagerHelper()
                 return field
             }
 

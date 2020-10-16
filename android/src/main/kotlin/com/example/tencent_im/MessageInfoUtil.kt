@@ -3,9 +3,8 @@ package com.example.tencent_im
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
-import android.os.Environment
 import android.util.Log
-import com.example.tencent_im.manager.JsonManagerHelper
+import com.tencent.imsdk.TIMImageType
 import com.tencent.imsdk.v2.*
 import java.io.File
 
@@ -169,50 +168,54 @@ object MessageInfoUtil {
 	 * 历史消息转换成list所需对象
 	 */
 	
-	fun historyMessageListToMap(context: Context,messageList: MutableList<V2TIMMessage>?, isGroup: Boolean): String? {
+	fun historyMessageListToMap(context: Context, messageList: MutableList<V2TIMMessage>?, isGroup: Boolean):MutableList<MessageInfoModel> ?{
 		if (messageList.isNullOrEmpty()) return null
-		val list: MutableList<MessageInfo> = mutableListOf()
+		val list: MutableList<MessageInfoModel> = mutableListOf()
 		messageList.forEach {
-			val ele2MessageInfo = ele2MessageInfo(context,it, isGroup)
+			val ele2MessageInfo = ele2MessageInfo(context, it, isGroup)
 			if (ele2MessageInfo != null) list.add(ele2MessageInfo)
 		}
 		list.sort()
-		return JsonManagerHelper.getHelper().dataToStr(list)
+		return list
 	}
-	private fun ele2MessageInfo(context:Context,timMessage: V2TIMMessage, isGroup: Boolean): MessageInfo? {
+	
+	private fun ele2MessageInfo(context: Context, timMessage: V2TIMMessage, isGroup: Boolean): MessageInfoModel? {
 		Log.d("chatTag", "elemType:${timMessage.elemType}")
-		with(MessageInfo(), {
+		with(MessageInfoModel(), {
 			self = timMessage.isSelf
 			msgTime = timMessage.timestamp
 			fromUser = timMessage.sender
 			peerRead = timMessage.isPeerRead
+			faceUrl = timMessage.faceUrl
 			group = isGroup
 			id = timMessage.msgID
-			tIMessageStr =JsonManagerHelper.getHelper().dataToStr(timMessage)
-			if (isGroup && !timMessage.nameCard.isNullOrEmpty()) groupNameCard = timMessage.nameCard
+			this.tiMessage = timMessage
+			showName = if (!isGroup || timMessage.nameCard.isNullOrEmpty()) {
+				if (!timMessage.nickName.isNullOrEmpty()) timMessage.nickName else if (!timMessage.sender.isNullOrEmpty()) timMessage.sender else ""
+			} else timMessage.nameCard
 			
-			when(timMessage.elemType){
-				V2TIMMessage.V2TIM_ELEM_TYPE_CUSTOM->{
+			when (timMessage.elemType) {
+				V2TIMMessage.V2TIM_ELEM_TYPE_CUSTOM -> {
 					val customElem = timMessage.customElem
 					val data = customElem.data
 					if (data != null) {
 						when (val string = String(data)) {
 							GROUP_CREATE -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_CREATE
-								extra = covert2HTMLString(if (groupNameCard.isNullOrEmpty()) fromUser else groupNameCard)
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_CREATE
+								extra = covert2HTMLString(showName)
 							}
 							GROUP_DELETE -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_DELETE
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_DELETE
 								extra = string
 							}
 							else -> {
-								msgType = MessageInfo.MSG_TYPE_CUSTOM
+								msgType = MessageInfoModel.MSG_TYPE_CUSTOM
 								extra = string
 							}
 						}
 					}
 				}
-				V2TIMMessage.V2TIM_ELEM_TYPE_GROUP_TIPS->{
+				V2TIMMessage.V2TIM_ELEM_TYPE_GROUP_TIPS -> {
 					val groupTipsElem = timMessage.groupTipsElem
 					if (groupTipsElem != null) {
 						var user = ""
@@ -242,23 +245,23 @@ object MessageInfoUtil {
 						when (groupTipsElem.type) {
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_INVITE,
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_JOIN -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_JOIN
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_JOIN
 								message += "加入群组"
 							}
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_QUIT -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_QUITE
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_QUITE
 								message += "退出群组"
 							}
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_KICKED -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_KICK
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_KICK
 								message += "被踢出群组"
 							}
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_SET_ADMIN -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 								message += "被设置管理员"
 							}
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_CANCEL_ADMIN -> {
-								msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+								msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 								message += "被取消管理员"
 							}
 							V2TIMGroupTipsElem.V2TIM_GROUP_TIPS_TYPE_GROUP_INFO_CHANGE -> {
@@ -268,23 +271,23 @@ object MessageInfoUtil {
 										val groupChange = groupChangeInfoList[i]
 										when (groupChange.type) {
 											V2TIMGroupChangeInfo.V2TIM_GROUP_INFO_CHANGE_TYPE_NAME -> {
-												msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NAME
+												msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NAME
 												message = message + "修改群名称为\"" + groupChange.value + "\""
 											}
 											V2TIMGroupChangeInfo.V2TIM_GROUP_INFO_CHANGE_TYPE_NOTIFICATION -> {
-												msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+												msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 												message = message + "修改群公告为\"" + groupChange.value + "\""
 											}
 											V2TIMGroupChangeInfo.V2TIM_GROUP_INFO_CHANGE_TYPE_OWNER -> {
-												msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+												msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 												message = message + "转让群主给\"" + groupChange.value + "\""
 											}
 											V2TIMGroupChangeInfo.V2TIM_GROUP_INFO_CHANGE_TYPE_FACE_URL -> {
-												msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+												msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 												message += "修改了群头像"
 											}
 											V2TIMGroupChangeInfo.V2TIM_GROUP_INFO_CHANGE_TYPE_INTRODUCTION -> {
-												msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+												msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 												message = message + "修改群介绍为\"" + groupChange.value + "\""
 											}
 										}
@@ -296,10 +299,10 @@ object MessageInfoUtil {
 								if (!groupTipsElem.memberChangeInfoList.isNullOrEmpty()) {
 									val muteTime = groupTipsElem.memberChangeInfoList[0].muteTime
 									message = if (muteTime > 0) {
-										msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+										msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 										message + "被禁言\"" + TimeUtils.formatSeconds(muteTime) + "\""
 									} else {
-										msgType = MessageInfo.MSG_TYPE_GROUP_MODIFY_NOTICE
+										msgType = MessageInfoModel.MSG_TYPE_GROUP_MODIFY_NOTICE
 										message + "被取消禁言"
 									}
 								}
@@ -309,29 +312,37 @@ object MessageInfoUtil {
 						extra = message
 					}
 				}
-				else->{
+				else -> {
 					when (timMessage.elemType) {
 						V2TIMMessage.V2TIM_ELEM_TYPE_TEXT -> extra = timMessage.textElem?.text
 						V2TIMMessage.V2TIM_ELEM_TYPE_FACE -> extra = ("[自定义表情]")
 						V2TIMMessage.V2TIM_ELEM_TYPE_SOUND -> {
 							val soundElemEle = timMessage.soundElem
 							if (soundElemEle != null) {
-								if (self)dataPath = soundElemEle.path
+								if (self) dataPath = soundElemEle.path
+								duration =soundElemEle.duration
 								extra = "[语音]"
 							}
 						}
 						V2TIMMessage.V2TIM_ELEM_TYPE_IMAGE -> {
 							val imageEle = timMessage.imageElem
 							if (imageEle != null) {
-								val localPath = imageEle.path
-								Log.d("imageTag", "localPath:$localPath")
-								if (self && !localPath.isNullOrEmpty()) {
-									dataPath = localPath
-									val size = ImageUtils.getImageSize(localPath)
-									width = size[0]
-									height = size[1]
+								dataPath = imageEle.path
+								val imageList = imageEle.imageList
+								if (!imageList.isNullOrEmpty()){
+									imageList.forEach {
+										if (it.type == TIMImageType.Thumb.value()) {
+											width = it.width
+											height = it.height
+											snapshotPath = it.url
+											Log.d("imageTag", "Thumb-type:${it.type},width:${it.width},height:${it.height}")
+											return@forEach
+										}else if (it.type == TIMImageType.Original.value()){
+											dataPath = it.url
+										}
+									}
 								}
-								Log.d("imageTag", "width:$width,height")
+								Log.d("imageTag", "dataPath:$dataPath")
 							}
 							extra = "[图片]"
 						}
@@ -341,23 +352,23 @@ object MessageInfoUtil {
 								val path = fileElem.path
 								if (!path.isNullOrEmpty()) {
 									dataPath = path
-									status = if (self) MessageInfo.MSG_STATUS_SEND_SUCCESS else MessageInfo.MSG_STATUS_DOWNLOADED
+									status = if (self) MessageInfoModel.MSG_STATUS_SEND_SUCCESS else MessageInfoModel.MSG_STATUS_DOWNLOADED
 								} else {
-									val fileSavePath = if (fileElem.uuid.isNullOrEmpty()) null else getFileSavePath(context,fileElem.uuid)
+									val fileSavePath = if (fileElem.uuid.isNullOrEmpty()) null else getFileSavePath(context, fileElem.uuid)
 									Log.d("chatFileTag", "fileSavePath:$fileSavePath")
 									if (self) {
 										if (fileSavePath.isNullOrEmpty()) {
-											status = MessageInfo.MSG_STATUS_UN_DOWNLOAD
+											status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
 										} else {
 											if (File(fileSavePath).exists()) {
-												status = MessageInfo.MSG_STATUS_SEND_SUCCESS
+												status = MessageInfoModel.MSG_STATUS_SEND_SUCCESS
 												dataPath = fileSavePath
 											} else {
-												status = MessageInfo.MSG_STATUS_UN_DOWNLOAD
+												status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
 											}
 										}
 									} else {
-										status = MessageInfo.MSG_STATUS_UN_DOWNLOAD
+										status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
 									}
 								}
 							}
@@ -365,11 +376,29 @@ object MessageInfoUtil {
 						}
 						V2TIMMessage.V2TIM_ELEM_TYPE_VIDEO -> {
 							val videoElem = timMessage.videoElem
-							if (videoElem != null && self && !videoElem.snapshotPath.isNullOrEmpty()) {
-								dataPath = videoElem.snapshotPath
-								dataUri = videoElem.videoPath
+							if (videoElem != null ) {
+								videoElem.getSnapshotUrl(object : V2TIMValueCallback<String?> {
+									override fun onError(p0: Int, p1: String?)=Unit
+									
+									override fun onSuccess(p0: String?) {
+										snapshotPath = p0?:""
+										Log.d("imageTag", "snapshotPath:$snapshotPath,dataPath:$dataPath")
+									}
+								})
+								videoElem.getVideoUrl(object : V2TIMValueCallback<String?> {
+									override fun onError(p0: Int, p1: String?)=Unit
+									override fun onSuccess(p0: String?) {
+										dataPath = p0
+										Log.d("imageTag", "snapshotPath:$snapshotPath,dataPath:$dataPath")
+									}
+								})
+								duration = videoElem.duration
+								width = videoElem.snapshotWidth
+								height =videoElem.snapshotHeight
 							}
 							extra = "[视频]"
+							Log.d("imageTag", "snapshotPath:$snapshotPath,dataPath:$dataPath")
+							Log.d("imageTag", "duration:$duration,width:$width,height:$height")
 						}
 					}
 					msgType = tIMElemType2MessageInfoType(timMessage.elemType)
@@ -377,15 +406,15 @@ object MessageInfoUtil {
 			}
 			Log.d("chatTag", "msgType:${msgType}")
 			if (timMessage.status == V2TIMMessage.V2TIM_MSG_STATUS_LOCAL_REVOKED) {
-				status = MessageInfo.MSG_STATUS_REVOKE
-				msgType = MessageInfo.MSG_STATUS_REVOKE
-				extra ="消息撤回"
+				status = MessageInfoModel.MSG_STATUS_REVOKE
+				msgType = MessageInfoModel.MSG_STATUS_REVOKE
+				extra = "消息撤回"
 			} else {
 				if (self) {
 					status = when (timMessage.status) {
-						V2TIMMessage.V2TIM_MSG_STATUS_SEND_SUCC -> MessageInfo.MSG_STATUS_SEND_SUCCESS
-						V2TIMMessage.V2TIM_MSG_STATUS_SENDING -> MessageInfo.MSG_STATUS_SENDING
-						else -> MessageInfo.MSG_STATUS_SEND_FAIL
+						V2TIMMessage.V2TIM_MSG_STATUS_SEND_SUCC -> MessageInfoModel.MSG_STATUS_SEND_SUCCESS
+						V2TIMMessage.V2TIM_MSG_STATUS_SENDING -> MessageInfoModel.MSG_STATUS_SENDING
+						else -> MessageInfoModel.MSG_STATUS_SEND_FAIL
 					}
 				}
 			}
@@ -395,28 +424,26 @@ object MessageInfoUtil {
 	
 	private fun tIMElemType2MessageInfoType(type: Int): Int {
 		when (type) {
-			V2TIMMessage.V2TIM_ELEM_TYPE_TEXT -> return MessageInfo.MSG_TYPE_TEXT
-			V2TIMMessage.V2TIM_ELEM_TYPE_IMAGE -> return MessageInfo.MSG_TYPE_IMAGE
-			V2TIMMessage.V2TIM_ELEM_TYPE_SOUND -> return MessageInfo.MSG_TYPE_AUDIO
-			V2TIMMessage.V2TIM_ELEM_TYPE_VIDEO -> return MessageInfo.MSG_TYPE_VIDEO
-			V2TIMMessage.V2TIM_ELEM_TYPE_FILE -> return MessageInfo.MSG_TYPE_FILE
-			V2TIMMessage.V2TIM_ELEM_TYPE_LOCATION -> return MessageInfo.MSG_TYPE_LOCATION
-			V2TIMMessage.V2TIM_ELEM_TYPE_FACE -> return MessageInfo.MSG_TYPE_CUSTOM_FACE
-			V2TIMMessage.V2TIM_ELEM_TYPE_GROUP_TIPS -> return MessageInfo.MSG_TYPE_TIPS
-			V2TIMMessage.V2TIM_ELEM_TYPE_CUSTOM -> return MessageInfo.MSG_TYPE_CUSTOM
+			V2TIMMessage.V2TIM_ELEM_TYPE_TEXT -> return MessageInfoModel.MSG_TYPE_TEXT
+			V2TIMMessage.V2TIM_ELEM_TYPE_IMAGE -> return MessageInfoModel.MSG_TYPE_IMAGE
+			V2TIMMessage.V2TIM_ELEM_TYPE_SOUND -> return MessageInfoModel.MSG_TYPE_AUDIO
+			V2TIMMessage.V2TIM_ELEM_TYPE_VIDEO -> return MessageInfoModel.MSG_TYPE_VIDEO
+			V2TIMMessage.V2TIM_ELEM_TYPE_FILE -> return MessageInfoModel.MSG_TYPE_FILE
+			V2TIMMessage.V2TIM_ELEM_TYPE_LOCATION -> return MessageInfoModel.MSG_TYPE_LOCATION
+			V2TIMMessage.V2TIM_ELEM_TYPE_FACE -> return MessageInfoModel.MSG_TYPE_CUSTOM_FACE
+			V2TIMMessage.V2TIM_ELEM_TYPE_GROUP_TIPS -> return MessageInfoModel.MSG_TYPE_TIPS
+			V2TIMMessage.V2TIM_ELEM_TYPE_CUSTOM -> return MessageInfoModel.MSG_TYPE_CUSTOM
 		}
-		return MessageInfo.MSG_TYPE_TEXT
+		return MessageInfoModel.MSG_TYPE_TEXT
 	}
 	
 	private fun covert2HTMLString(original: String?): String {
 		if (original.isNullOrEmpty()) return ""
 		return "\"<font color=\"#5B6B92\">$original</font>\""
 	}
-	private fun getFileSavePath(context: Context,uuid: String?): String {
-		return Utils.getFileCachePath(context)+ File.separator + uuid
+	
+	private fun getFileSavePath(context: Context, uuid: String?): String {
+		return Utils.getFileCachePath(context) + File.separator + uuid
 	}
 	
-	fun getMessage(){
-	
-	}
 }
