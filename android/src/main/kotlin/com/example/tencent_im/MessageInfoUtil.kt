@@ -319,6 +319,12 @@ object MessageInfoUtil {
 						V2TIMMessage.V2TIM_ELEM_TYPE_SOUND -> {
 							val soundElemEle = timMessage.soundElem
 							if (soundElemEle != null) {
+								soundElemEle.getUrl(object : V2TIMValueCallback<String?> {
+									override fun onError(p0: Int, p1: String?)=Unit
+									override fun onSuccess(p0: String?) {
+										dataPath = p0
+									}
+								})
 								if (self) dataPath = soundElemEle.path
 								duration =soundElemEle.duration
 								extra = "[语音]"
@@ -348,30 +354,12 @@ object MessageInfoUtil {
 						}
 						V2TIMMessage.V2TIM_ELEM_TYPE_FILE -> {
 							val fileElem = timMessage.fileElem
-							if (fileElem != null) {
-								val path = fileElem.path
-								if (!path.isNullOrEmpty()) {
-									dataPath = path
-									status = if (self) MessageInfoModel.MSG_STATUS_SEND_SUCCESS else MessageInfoModel.MSG_STATUS_DOWNLOADED
-								} else {
-									val fileSavePath = if (fileElem.uuid.isNullOrEmpty()) null else getFileSavePath(context, fileElem.uuid)
-									Log.d("chatFileTag", "fileSavePath:$fileSavePath")
-									if (self) {
-										if (fileSavePath.isNullOrEmpty()) {
-											status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
-										} else {
-											if (File(fileSavePath).exists()) {
-												status = MessageInfoModel.MSG_STATUS_SEND_SUCCESS
-												dataPath = fileSavePath
-											} else {
-												status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
-											}
-										}
-									} else {
-										status = MessageInfoModel.MSG_STATUS_UN_DOWNLOAD
-									}
+							fileElem?.getUrl(object : V2TIMValueCallback<String?> {
+								override fun onError(p0: Int, p1: String?)=Unit
+								override fun onSuccess(p0: String?) {
+									dataPath = p0
 								}
-							}
+							})
 							extra = "[文件]"
 						}
 						V2TIMMessage.V2TIM_ELEM_TYPE_VIDEO -> {

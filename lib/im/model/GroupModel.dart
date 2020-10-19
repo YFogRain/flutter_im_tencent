@@ -11,13 +11,12 @@ class GroupModel {
   int lastMessageTime; //" to lastMessageTime,
   bool isAllMuted; //" to isAllMuted,
   int recvOpt; //" to recvOpt,
-  int role; //" to role,
+  int role = 0; //" to role,
   int groupAddOpt; //" to groupAddOpt,
   int lastInfoTime; //" to lastInfoTime,
   int onlineCount; //" to onlineCount,
   int joinTime; //" to joinTime,
 
-  @override
   Map<String, dynamic> toJson() => {
         "groupName": groupName,
         "groupID": groupID,

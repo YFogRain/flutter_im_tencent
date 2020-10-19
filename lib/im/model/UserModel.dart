@@ -7,7 +7,6 @@ class UserModel {
   String remark;
   int allowType = 0;
 
-  @override
   Map<String, dynamic> toJson() => {
     'nickName': nickName,
     'faceUrl': faceUrl,

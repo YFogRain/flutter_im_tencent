@@ -92,7 +92,8 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 					call.argument<Boolean>("isFirst") ?: false,
 					result)//加载历史消息
 			
-			"messageRead"->messageRead(call.argument("imId"),call.argument("isGroup")?:false,result) //设置消息已读
+			"messageRead" -> messageRead(call.argument("imId"), call.argument("isGroup")
+					?: false, result) //设置消息已读
 			
 			"getFriendList" -> getFriendList(result) //获取好友列表
 			
@@ -106,11 +107,30 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 					call.argument("isSingleFriend") ?: false,
 					result) //发送好友请求
 			
-			"deleteFriend" -> deleteFriend(call.argument("userList"),call.argument("isDeleteSingle")?:false,result)//删除好友
+			"deleteFriend" -> deleteFriend(call.argument("userList"), call.argument("isDeleteSingle")
+					?: false, result)//删除好友
 			
-			"getGroupList" ->getGroupList(result)//获取群列表
+			"getGroupList" -> getGroupList(result)//获取群列表
 			
+			"getGroupMemberList" -> getGroupMemberList(call.argument("groupId"), call.argument<Int>("filter")
+					?: V2TIMGroupMemberFullInfo.V2TIM_GROUP_MEMBER_FILTER_ALL, call.argument<Int>("nextSeq")
+					?: 0, result)
 			
+			"getGroupDetailList" -> getGroupDetailList(call.argument<MutableList<String>>("groupIdList"), result)
+			
+			"createGroup" -> createGroup(call.argument("memberList"), call.argument("groupType"), call.argument("groupName"), result)
+			
+			"quitGroup" -> quitGroup(call.argument("groupId"), result)
+			
+			"dismissGroup" -> dismissGroup(call.argument("groupId"), result)
+			
+			"modifySelfInfo"->modifySelfInfo(
+					call.argument("selfSignature"),
+					call.argument("nickName"),
+					call.argument("allowType"),
+					call.argument("faceUrl"),
+					call.argument("gender"),
+					call.argument("customInfo"),result)
 			else -> result.notImplemented()
 		}
 	}
@@ -192,7 +212,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 				p0?.conversationList?.forEach {
 					lists.add(MessageInfoUtil.conversationToMap(it))
 				}
-				result.success(lists)
+				result.success(JsonManagerHelper.getHelper().dataToStr(lists))
 			}
 			
 			override fun onProgress(p0: Int) = Unit
@@ -273,7 +293,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 	}
 	
 	/**
-	 *  获取登录用户信息
+	 *  获取用户信息
 	 */
 	private fun getLoginUserData(userList: MutableList<String>?, result: Result) {
 		if (userList.isNullOrEmpty()) {
@@ -282,7 +302,6 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 		}
 		V2TIMManager.getInstance().getUsersInfo(userList, object : V2TIMValueCallback<MutableList<V2TIMUserFullInfo>?> {
 			override fun onError(p0: Int, p1: String?) = result.success(null)
-			
 			override fun onSuccess(p0: MutableList<V2TIMUserFullInfo>?) {
 				if (!p0.isNullOrEmpty()) {
 					val lists = mutableListOf<Map<String, Any?>>()
@@ -293,7 +312,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 								"userID" to it.userID,
 								"selfSignature" to it.selfSignature))
 					}
-					result.success(lists)
+					result.success(JsonManagerHelper.getHelper().dataToStr(lists))
 					return
 				}
 				result.success(null)
@@ -323,7 +342,7 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 							"allowType" to userProfile.allowType,
 					))
 				}
-				result.success(lists)
+				result.success(JsonManagerHelper.getHelper().dataToStr(lists))
 			}
 		})
 	}
@@ -362,24 +381,24 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 	private fun deleteFriend(userList: MutableList<String>?, isDeleteSingle: Boolean, result: Result) {
 		V2TIMManager.getFriendshipManager().deleteFromFriendList(userList, if (isDeleteSingle) V2TIMFriendInfo.V2TIM_FRIEND_TYPE_SINGLE else V2TIMFriendInfo.V2TIM_FRIEND_TYPE_BOTH, object : V2TIMValueCallback<MutableList<V2TIMFriendOperationResult>?> {
 			override fun onError(p0: Int, p1: String?) = result.success(false)
-			override fun onSuccess(p0: MutableList<V2TIMFriendOperationResult>?) =result.success(true)
+			override fun onSuccess(p0: MutableList<V2TIMFriendOperationResult>?) = result.success(true)
 		})
 	}
 	
 	/**
 	 * 设置消息已读
 	 */
-	private fun messageRead(imId:String?,isGroup:Boolean,result: Result){
+	private fun messageRead(imId: String?, isGroup: Boolean, result: Result) {
 		//将来自 haven 的消息均标记为已读
 		if (isGroup) {
 			V2TIMManager.getMessageManager().markGroupMessageAsRead(imId, object : V2TIMCallback {
-				override fun onSuccess() =result.success(true)
+				override fun onSuccess() = result.success(true)
 				override fun onError(p0: Int, p1: String?) = result.success(false)
 			})
 			return
 		}
 		V2TIMManager.getMessageManager().markC2CMessageAsRead(imId, object : V2TIMCallback {
-			override fun onError(code: Int, desc: String) =result.success(false)
+			override fun onError(code: Int, desc: String) = result.success(false)
 			override fun onSuccess() = result.success(true)
 		})
 	}
@@ -387,10 +406,10 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 	/**
 	 * 获取群列表
 	 */
-	private fun getGroupList(result: Result){
+	private fun getGroupList(result: Result) {
 		V2TIMManager.getGroupManager().getJoinedGroupList(object : V2TIMValueCallback<MutableList<V2TIMGroupInfo>?> {
 			override fun onSuccess(p0: MutableList<V2TIMGroupInfo>?) {
-				val list = mutableListOf<Map<String,Any?>>()
+				val list = mutableListOf<Map<String, Any?>>()
 				p0?.forEach {
 					list.add(mapOf(
 							"groupName" to it.groupName,
@@ -410,12 +429,133 @@ class TencentImPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 							"lastInfoTime" to it.lastInfoTime,
 							"onlineCount" to it.onlineCount,
 							"joinTime" to it.joinTime,
-							
 					))
 				}
-				result.success(list)
+				result.success(JsonManagerHelper.getHelper().dataToStr(list))
 			}
-			override fun onError(p0: Int, p1: String?)= result.success(null)
+			
+			override fun onError(p0: Int, p1: String?) = result.success(null)
+		})
+	}
+	
+	/**
+	 * 获取群成员列表
+	 */
+	private fun getGroupMemberList(groupId: String?, filter: Int = V2TIMGroupMemberFullInfo.V2TIM_GROUP_MEMBER_FILTER_ALL, nextSeq: Int = 0, result: Result) {
+		V2TIMManager.getGroupManager().getGroupMemberList(groupId, filter, nextSeq.toLong(), object : V2TIMValueCallback<V2TIMGroupMemberInfoResult?> {
+			override fun onSuccess(p0: V2TIMGroupMemberInfoResult?) {
+				val nextSeq1 = p0?.nextSeq ?: 0
+				val memberInfoList = p0?.memberInfoList
+				val listMember: MutableList<Map<String, Any?>> = mutableListOf()
+				memberInfoList?.forEach {
+					listMember.add(mapOf(
+							"role" to it.role,
+							"userID" to it.userID,
+							"faceUrl" to it.faceUrl,
+							"nameCard" to it.nameCard,
+							"nickName" to it.nickName,
+							"friendRemark" to it.friendRemark,
+							"muteUntil" to it.muteUntil,
+							"joinTime" to it.joinTime,
+							"customInfo" to it.customInfo,
+					))
+				}
+				
+				result.success(JsonManagerHelper.getHelper().dataToStr(mapOf<String, Any?>("nextSeq" to nextSeq1, "memberInfoList" to listMember)))
+			}
+			
+			override fun onError(p0: Int, p1: String?) = result.success(null)
+		})
+	}
+	
+	/**
+	 * 获取群信息
+	 */
+	private fun getGroupDetailList(groupList: MutableList<String>?, result: Result) {
+		V2TIMManager.getGroupManager().getGroupsInfo(groupList, object : V2TIMValueCallback<MutableList<V2TIMGroupInfoResult>?> {
+			override fun onError(p0: Int, p1: String?) = result.success(null)
+			override fun onSuccess(p0: MutableList<V2TIMGroupInfoResult>?) {
+				val resultList: MutableList<Map<String, Any?>> = mutableListOf()
+				p0?.forEach {
+					val groupInfo = it.groupInfo
+					resultList.add(mapOf(
+							"groupName" to groupInfo.groupName,
+							"groupID" to groupInfo.groupID,
+							"faceUrl" to groupInfo.faceUrl,
+							"groupType" to groupInfo.groupType,
+							"introduction" to groupInfo.introduction,
+							"notification" to groupInfo.notification,
+							"owner" to groupInfo.owner,
+							"createTime" to groupInfo.createTime,
+							"memberCount" to groupInfo.memberCount,
+							"lastMessageTime" to groupInfo.lastMessageTime,
+							"isAllMuted" to groupInfo.isAllMuted,
+							"recvOpt" to groupInfo.recvOpt,
+							"role" to groupInfo.role,
+							"groupAddOpt" to groupInfo.groupAddOpt,
+							"lastInfoTime" to groupInfo.lastInfoTime,
+							"onlineCount" to groupInfo.onlineCount,
+							"joinTime" to groupInfo.joinTime,
+					))
+				}
+				result.success(JsonManagerHelper.getHelper().dataToStr(resultList))
+			}
+		})
+	}
+	
+	
+	/**
+	 * 创建群
+	 */
+	private fun createGroup(memberList: MutableList<String>?, groupType: String? = "private", groupName: String?, result: Result){
+		val v2TIMCreateGroupMemberInfoList: MutableList<V2TIMCreateGroupMemberInfo> = mutableListOf()
+		
+		memberList?.forEach {
+			v2TIMCreateGroupMemberInfoList.add(V2TIMCreateGroupMemberInfo().apply { setUserID(it) })
+		}
+		
+		V2TIMManager.getGroupManager().createGroup(V2TIMGroupInfo().apply {
+			this.groupType = groupType
+			this.groupName = groupName
+		}, v2TIMCreateGroupMemberInfoList, object : V2TIMValueCallback<String?> {
+			override fun onSuccess(p0: String?) = result.success(true)
+			override fun onError(p0: Int, p1: String?) = result.success(false)
+		})
+	}
+	
+	/**
+	 * 退出群组
+	 */
+	private fun quitGroup(groupId: String?, result: Result){
+		V2TIMManager.getInstance().quitGroup(groupId, object : V2TIMCallback {
+			override fun onSuccess() = result.success(-1)
+			override fun onError(p0: Int, p1: String?) = result.success(p0)
+		})
+	}
+	/**
+	 * 解散群
+	 */
+	private fun dismissGroup(groupId: String?, result: Result){
+		V2TIMManager.getInstance().dismissGroup(groupId, object : V2TIMCallback {
+			override fun onSuccess() = result.success(true)
+			override fun onError(p0: Int, p1: String?) = result.success(false)
+		})
+	}
+	/**
+	 * 修改个人信息
+	 */
+	private fun modifySelfInfo(selfSignature: String?, nickName: String?, allowType: Int?, faceUrl: String?, gender: Int?, customInfo: HashMap<String, ByteArray>?,result: Result){
+		
+		V2TIMManager.getInstance().setSelfInfo(V2TIMUserFullInfo().apply {
+		if (selfSignature!=null)	this.selfSignature = selfSignature
+			if (nickName!=null)	this.setNickname(nickName)
+			if (allowType!=null)	this.allowType = allowType
+			if (faceUrl!=null)	this.faceUrl = faceUrl
+			if (gender!=null)	this.gender = gender
+			if (customInfo!=null)	this.customInfo = customInfo
+		},object : V2TIMCallback {
+			override fun onError(p0: Int, p1: String?) =result.success(false)
+			override fun onSuccess() = result.success(true)
 		})
 	}
 }

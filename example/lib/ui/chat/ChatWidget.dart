@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:tencent_im/im/IMManager.dart';
 import 'package:tencent_im/im/model/MessageInfoModel.dart';
+import 'package:tencent_im_example/ui/group/GroupDetailWidget.dart';
 import 'package:tencent_im_example/ui/user/UserDetailWidget.dart';
 import 'package:tencent_im_example/utils/AppColors.dart';
 import 'package:tencent_im_example/utils/Utils.dart';
@@ -74,12 +75,30 @@ class ChatState extends State<ChatWidget> {
                       ),
                     ),
                   ),
-                  Container(
-                    width: 55,
-                    child: Divider(
-                      color: Colors.white,
-                    ),
-                  )
+                  !widget.isGroup
+                      ? Container(
+                          width: 55,
+                        )
+                      : InkWell(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => GroupDetailWidget(widget.imId)));
+                            print("isGroup");
+                          },
+                          child: Container(
+                            height: 45,
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 15, right: 15),
+                              child: Image.asset(
+                                "images/more.png",
+                                width: 25,
+                                height: 25,
+                              ),
+                            ),
+                          ),
+                        )
                 ],
               ),
             ),
@@ -103,8 +122,7 @@ class ChatState extends State<ChatWidget> {
                     ),
                     color: AppColors.splashColor,
                     backgroundColor: Colors.white,
-                  )
-                  ),
+                  )),
             ),
             Container(
               color: Colors.white,
@@ -303,12 +321,14 @@ class ChatState extends State<ChatWidget> {
   }
 
   var isFirst = true;
+
   void _loadHistory() async {
     print("imId:${widget.imId},isGroup:${widget.isGroup}");
-    var loadChatHistory = await IMManager().loadChatHistory(widget.imId, 20, widget.isGroup,isFirst);
+    var loadChatHistory = await IMManager()
+        .loadChatHistory(widget.imId, 20, widget.isGroup, isFirst);
     print("loadChatHistory:$loadChatHistory");
     _loadSuccess(loadChatHistory);
-    isFirst= false;
+    isFirst = false;
   }
 
   void _loadSuccess(List<MessageInfoModel> list) {
@@ -358,25 +378,27 @@ class MessageItem extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           !data.self
               ? Row(
                   children: <Widget>[
                     InkWell(
-                      onTap: (){
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => UserDetailWidget(data.fromUser)));
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    UserDetailWidget(data.fromUser)));
                       },
                       child: CircleAvatar(
                         backgroundImage: data.faceUrl == null
                             ? null
                             : Image.network(
-                          data.faceUrl,
-                          fit: BoxFit.cover,
-                        ).image,
-                      ) ,
-                    )
-                   ,
+                                data.faceUrl,
+                                fit: BoxFit.cover,
+                              ).image,
+                      ),
+                    ),
                     Container(width: 5),
                   ],
                 )
@@ -503,10 +525,8 @@ class MessageVoice extends StatefulWidget {
 }
 
 class MessageVoiceState extends State<MessageVoice> {
-
   // 播放语音
-  onPlayerOrStop() async {
-  }
+  onPlayerOrStop() async {}
 
   @override
   Widget build(BuildContext context) {
@@ -516,7 +536,10 @@ class MessageVoiceState extends State<MessageVoice> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(Icons.subject),
-          Text("${widget.data == null ? "00:00" : widget.data.duration<10 ? "00:0"+widget.data.duration.toString():"00:" + widget.data.duration.toString()}″",style: TextStyle(fontSize: 9),),
+          Text(
+            "${widget.data == null ? "00:00" : widget.data.duration < 10 ? "00:0" + widget.data.duration.toString() : "00:" + widget.data.duration.toString()}″",
+            style: TextStyle(fontSize: 9),
+          ),
         ],
       ),
     );
@@ -575,8 +598,8 @@ class MessageVideoState extends State<MessageVideo> {
               right: 5,
               bottom: 5,
               child: Text(
-                "${widget.data == null ? "00:00" : widget.data.duration<10 ? "00:0"+widget.data.duration.toString():"00:" + widget.data.duration.toString()}″",
-                style: TextStyle(fontSize:9,color: Colors.white),
+                "${widget.data == null ? "00:00" : widget.data.duration < 10 ? "00:0" + widget.data.duration.toString() : "00:" + widget.data.duration.toString()}″",
+                style: TextStyle(fontSize: 9, color: Colors.white),
               ),
             ),
           ],
@@ -585,6 +608,7 @@ class MessageVideoState extends State<MessageVideo> {
     );
   }
 }
+
 /// 消息位置
 class MessageLocation extends StatelessWidget {
   /// 描述

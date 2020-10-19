@@ -170,7 +170,7 @@ class UserDetailState extends State<UserDetailWidget> {
   void addFriend() async {
     showLoad();
     var addFriend =
-        await IMManager().addFriend(model.userID, "flutter", "好友请求测试", null,false);
+        await IMManager().addFriend(model.userID,source: "flutter",wording: "好友请求测试");
     dismissDialog();
     print("addFriend:$addFriend");
   }
@@ -200,7 +200,7 @@ class UserDetailState extends State<UserDetailWidget> {
 
   void _loadUserData() async {
     model = await IMManager().getOneUserDetail(widget.userId);
-    isMeFriend = await IMManager().checkFriend(widget.userId,true);
+    isMeFriend = await IMManager().checkFriend(widget.userId);
     setState(() {});
   }
 }

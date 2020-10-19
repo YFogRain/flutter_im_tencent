@@ -10,18 +10,6 @@ class ConsultModel {
   int gender = -1;
   ConversationModel lastMessage;
 
-  @override
-  Map<String, dynamic> toJson() => {
-        'showName': showName,
-        'faceUrl': faceUrl,
-        'unreadCount': unreadCount,
-        'isGroup': isGroup,
-        'imId': imId,
-        'conversationID': conversationID,
-        'contentAtType': contentAtType,
-        'lastMessage': lastMessage,
-      };
-
   ConsultModel.fromJson(Map<String, dynamic> json)
       : showName = json["showName"],
         faceUrl = json["faceUrl"],

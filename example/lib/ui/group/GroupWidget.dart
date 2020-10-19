@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:tencent_im/im/IMManager.dart';
+import 'package:tencent_im_example/ui/chat/ChatWidget.dart';
 import 'package:tencent_im_example/utils/AppColors.dart';
 import 'package:tencent_im_example/utils/Constants.dart';
 import 'package:tencent_im/im/model/GroupModel.dart';
@@ -142,6 +143,7 @@ class GroupState extends State<GroupWidget> {
                     ],
                   )),
             ),
+
           ],
         ));
   }
@@ -151,7 +153,7 @@ class GroupState extends State<GroupWidget> {
     print("model:$model");
     return InkWell(
       onTap: () {
-        // _itemClick(model);
+        _itemClick(model);
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +197,14 @@ class GroupState extends State<GroupWidget> {
         ],
       ),
     );
+  }
+
+  void _itemClick(GroupModel model){
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => ChatWidget(model.groupID, true,model.groupName)));
+
   }
 
   Future _loadData() async {
